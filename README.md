@@ -1,2 +1,2 @@
-# sscript
-The build script compiler lib
+# Descript
+The build script compiler
