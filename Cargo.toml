@@ -7,3 +7,4 @@ edition = "2021"
 
 [dependencies]
 chumsky = {git = "https://github.com/zesterer/chumsky", rev = "e9962b2"}
+llvm-sys = "160.0.2"
