@@ -1,4 +1,4 @@
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub enum Literal {
     Str(String),
     Int(i32),
@@ -23,7 +23,7 @@ pub enum Kw {
     Echo
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub struct Stmt {
     pub kw: Kw,
     pub args: Vec<Literal>

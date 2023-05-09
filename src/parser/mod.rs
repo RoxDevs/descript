@@ -4,10 +4,10 @@ use chumsky::{
     extra,
     prelude::Parser,
     primitive::{any, choice, just, none_of},
-    text, IterParser, ParseResult,
+    text, IterParser,
 };
 
-trait CheapParser<'a, O> = Parser<'a, &'a str, O, extra::Err<Cheap>>;
+pub trait CheapParser<'a, O> = Parser<'a, &'a str, O, extra::Err<Cheap>>;
 
 pub fn literal<'a>() -> impl CheapParser<'a, Literal> {
     let int = text::int::<'a, _, _, extra::Err<Cheap>>(10)
@@ -34,14 +34,14 @@ fn padded_ws<'a>() -> impl CheapParser<'a, ()> {
     text::whitespace().at_least(1).ignored()
 }
 
-pub fn stmt<'a>() -> impl CheapParser<'a, Stmt> {
+pub(crate) fn stmt<'a>() -> impl CheapParser<'a, Stmt> {
     kw().then_ignore(padded_ws())
         .then(
             literal()
                 .separated_by(padded_ws().ignored())
                 .collect::<Vec<Literal>>(),
-        )
-        .map(|(kw, args)| Stmt { kw: kw, args: args })
+        ).then_ignore(just("\n"))
+        .map(|(kw, args)| Stmt { kw, args })
 }
 
 
@@ -88,7 +88,7 @@ mod test {
     #[test]
     fn stmt_test() {
         let tests = vec![(
-            "echo 2",
+            "echo 2\n",
             Stmt {
                 kw: Kw::Echo,
                 args: vec![Literal::Int(2)],
