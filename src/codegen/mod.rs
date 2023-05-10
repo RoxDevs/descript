@@ -40,20 +40,27 @@ impl<'a> CodeGen<'a> {
         for stmt in input {
             self.compile_stmt(stmt)
         }
-        self.execute()
+        self.builder.build_return(Some(&self.ctx.i8_type().const_int(0, false)));
     }
 
     // Thanks https://github.com/phodal-archive/llvm-rust-helloworld
     pub fn execute(&self) {
+        #[cfg(debug_assertions)]
+        match self.module.verify() {
+            Ok(_) => {},
+            Err(err) => panic!("{}", err)
+        }
+
         let ee = self
             .module
-            .create_jit_execution_engine(OptimizationLevel::None)
+            .create_jit_execution_engine(OptimizationLevel::Default)
             .unwrap();
         let maybe_fn = unsafe { ee.get_function::<unsafe extern "C" fn() -> f64>("main") };
 
         let compiled_fn = match maybe_fn {
             Ok(f) => f,
             Err(err) => {
+                eprintln!("{}", self.module.to_string());
                 panic!("{:?}", err);
             }
         };
@@ -108,14 +115,20 @@ impl<'a> CodeGen<'a> {
     fn compile_echo(&mut self, args: Vec<Literal>) {
         assert_eq!(args.len(), 1);
         let arg = args[0].clone();
-        let val = match arg {
-            Literal::Str(s) => {
-                self.get_or_globalize_str_literal(s)
-            }
-            Literal::Int(_) => todo!(),
-            Literal::Float(_) => todo!(),
-            Literal::NestedStmt(_) => todo!(),
-        };
-        drop(args);
+        let s = arg.to_string();
+        let mut chars: Vec<u8> = s.chars().map(|c| c as u8).collect();
+        chars.push(0);
+
+        let llvm_arr = self.ctx.i8_type().array_type(chars.len() as u32);
+        let vals: Vec<_> = chars.iter().map(|v| self.ctx.i8_type().const_int(*v as u64, false)).collect();
+        let address_space = AddressSpace::from((chars.len() * 8) as u16);
+        let gv = self.module.add_global(llvm_arr, Some(address_space), "global");
+        gv.set_initializer(&self.ctx.i8_type().const_array(&vals));
+
+        // *_t stands for type of *
+        let str_t = self.ctx.i8_type().ptr_type(address_space);
+        let puts_t = self.ctx.i32_type().fn_type(&[str_t.into()], true);
+        let func = self.module.add_function("puts", puts_t, Some(Linkage::External));
+        self.builder.build_call(func, &[gv.as_pointer_value().into()], "puts_call");
     }
 }

@@ -11,11 +11,11 @@ mod parser;
 mod ast;
 pub mod codegen;
 
-// pub fn run(inp: &str) {
-//     let parser = stmt().repeated().collect::<Vec<Stmt>>();
-//     let stmts = parser.parse(inp).unwrap();
-//     let ctx = Context::create();
-//     let mut compiler = CodeGen::new(&ctx);
-//     compiler.compile(stmts);
-//     compiler.execute()
-// }
+pub fn run(inp: &str) {
+    let parser = stmt().repeated().collect::<Vec<Stmt>>();
+    let stmts = parser.parse(inp).unwrap();
+    let ctx = Context::create();
+    let mut compiler = CodeGen::new(&ctx);
+    compiler.compile(stmts);
+    compiler.execute()
+}
